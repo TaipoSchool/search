@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大埔區小學叩門（26/27）搜尋器</title>
+    <!-- 引入 Tailwind CSS 用於快速構建簡潔優雅的 UI -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            background-color: #FDFBF7; /* 溫暖米白色底，減輕視覺疲勞 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft JhengHei", sans-serif;
+        }
+    </style>
+</head>
+<body class="py-8 px-4 sm:px-6 lg:px-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- 標頭區域 -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-amber-900 mb-2">大埔區小學叩門（26/27）搜尋器</h1>
+            <p class="text-sm text-amber-700">資深工程師謹製 · 資料來源：家長專屬 Google 試算表同步封裝</p>
+        </header>
+
+        <!-- 搜尋控制台 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 mb-6">
+            <div class="relative">
+                <input type="text" id="searchInput" oninput="doSearch()" 
+                       placeholder="輸入關鍵字搜尋... (例如: 8401、寶舊、阮鄭、官小、Methodist)" 
+                       class="w-full pl-4 pr-12 py-3.5 bg-amber-50/50 border border-amber-200 rounded-xl text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg">
+                <div class="absolute right-4 top-4 text-amber-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 items-center text-xs text-amber-600">
+                <span class="font-medium">熱門標籤：</span>
+                <button onclick="setKeyword('寶舊')" class="px-2 py-1 bg-amber-100/60 hover:bg-amber-100 rounded transition">寶舊</button>
+                <button onclick="setKeyword('八舊')" class="px-2 py-1 bg-amber-100/60 hover:bg-amber-100 rounded transition">八舊</button>
+                <button onclick="setKeyword('阮鄭')" class="px-2 py-1 bg-amber-100/60 hover:bg-amber-100 rounded transition">阮鄭</button>
+                <button onclick="setKeyword('賽馬會')" class="px-2 py-1 bg-amber-100/60 hover:bg-amber-100 rounded transition">賽馬會</button>
+                <button onclick="setKeyword('13/6')" class="px-2 py-1 bg-amber-100/60 hover:bg-amber-100 rounded transition">13/6面試</button>
+            </div>
+        </div>
+
+        <!-- 狀態計數器 -->
+        <div class="text-sm text-amber-800 mb-4 font-medium px-1" id="resultCount">
+            正在載入 19 間學校資料...
+        </div>
+
+        <!-- 學校結果列表 -->
+        <div id="schoolsContainer" class="space-y-4">
+            <!-- 這裡會由 JavaScript 自動渲染 -->
+        </div>
+    </div>
+
+    <script>
+        // 核心資料庫：已將 Google Sheet 的「叩門資訊」與「老師/收生指數」進行全自動化關聯與對齊
+        const schoolDatabase = [
+            {
+                code: "8401",
+                nameEn: "Tai Po Old Market Public School (Plover Cove)",
+                nameCh: "大埔舊墟公立學校（寶湖道）",
+                alias: "寶舊",
+                link: "https://www.tpompspc.edu.hk/2026-2027-%e5%b0%8f%e4%b8%80%e6%8f%92%e7%8f%ad%e7%94%9f%e9%80%9a%e5%91%8a%e5%8f%8a%e5%a0%b1%e5%90%8d%e8%a1%a8/",
+                interviewDate: "13/6 上午",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E8%88%8A%E5%A2%9F%E5%85%AC%E7%AB%8B%E5%AD%B8%E6%A0%A1(%E5%AF%B6%E6%B9%96%E9%81%93)",
+                teacherStability: "94.75/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8402",
+                nameEn: "HK Taoist Assn Wun Tsuen Ng Lai Wo Memorial School",
+                nameCh: "香港道教聯合會雲泉吳禮和紀念學校",
+                alias: "吳禮和",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E9%A6%99%E6%B8%AF%E道%E6%95%99%E8%81%AF%E5%90%88%E6%9C%83%E9%9B%B2%E6%B3%89%E5%90%B3%E7%A6%AE%E5%92%8C%E7%B4%80%E5%BF%B5%E5%AD%B8%E6%A0%A1",
+                teacherStability: "64.37/100",
+                enrollmentIndex: "26/100"
+            },
+            {
+                code: "8403",
+                nameEn: "NTWJWAL Leung Sing Tak Primary School",
+                nameCh: "新界婦孺福利會梁省德學校",
+                alias: "梁省德",
+                link: "http://103.231.255.68/~taipolst/sites/default/files/2526_P.1_%E6%8F%92%E7%8F%AD%E7%94%B3%E8%AB%8B%E8%A1%A8.pdf",
+                interviewDate: "個別通知",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E6%96%BCC%E7%95%8C%E5%A9%A6%E5%AD%BA%E7%A6%A5%E5%88%A9%E6%9C%83%E6%A2%81%E7%9C%81%E5%BE%B7%E5%AD%B8%E6%A0%A1",
+                teacherStability: "--",
+                enrollmentIndex: "--"
+            },
+            {
+                code: "8404",
+                nameEn: "Sam Shui Natives Assn Huen King Wing School",
+                nameCh: "三水同鄉會禤景榮學校",
+                alias: "三水",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E4%B8%89%E6%B0%B4%E5%90%8C%E9%84%89%E6%9C%83%E7%A6%A4%E6%99%AF%E6%A6%AE%E5%AD%B8%E6%A0%A1",
+                teacherStability: "75.24/100",
+                enrollmentIndex: "84/100"
+            },
+            {
+                code: "8405",
+                nameEn: "Tai Po Baptist Public School",
+                nameCh: "大埔浸信會公立學校",
+                alias: "浸信會",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E6%B5%B8%E4%BF%A1%E6%9C%83%E5%85%AC%E7%AB%8B%E5%AD%B8%E6%A0%A1",
+                teacherStability: "88.33/100",
+                enrollmentIndex: "73/100"
+            },
+            {
+                code: "8406",
+                nameEn: "Sung Tak Wong Kin Sheung Memorial School",
+                nameCh: "大埔崇德黃建常紀念學校",
+                alias: "黃建常",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E5%B4%87%E5%BE%B7%E9%BB%83%E5%BB%BA%E5%B8%B8%E7%B4%80%E5%BF%B5%E5%AD%B8%E6%A0%A1",
+                teacherStability: "93.59/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8407",
+                nameEn: "Tai Po Old Market Public School",
+                nameCh: "大埔舊墟公立學校",
+                alias: "八舊",
+                link: "https://tpomps.goodschool.hk/article/386",
+                interviewDate: "13/6 上午",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E8%88%8A%E5%A2%9F%E5%85%AC%E7%AB%8B%E5%AD%B8%E6%A0%A1",
+                teacherStability: "87.88/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8408",
+                nameEn: "PLK Tin Ka Ping Primary School",
+                nameCh: "保良局田家炳小學",
+                alias: "田家炳",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E4%BF%9D%E8%89%AF%E5%B1%80%E7%94%B0%E5%AE%B6%E7%82%B3%E5%B0%8F%E5%AD%B8",
+                teacherStability: "87.42/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8409",
+                nameEn: "SKH Yuen Chen Maun Chen Primary School",
+                nameCh: "聖公會阮鄭夢芹小學",
+                alias: "阮鄭",
+                link: "https://www.skhycmcps.edu.hk/openday2021/2026%E5%B9%B4%E5%BA%A6%E5%B0%8F%E4%B8%80%E5%BE%8C%E5%8F%96%E7%94%9F%E7%94%B3%E8%AB%8B%E9%A0%88%E7%9F%A5(%E7%B6%B2%E4%B8%8A).pdf",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E8%81%96%E5%85%AC%E6%9C%83%E9%98%AE%E9%84%AD%E5%A4%A2%E8%8A%B9%E5%B0%8F%E5%AD%B8",
+                teacherStability: "95.14/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8410",
+                nameEn: "HK & KLN KFWA Sun Fong Chung Primary School",
+                nameCh: "港九街坊婦女會孫方中小學",
+                alias: "孫方中",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E6%B8%AF%E4%B9%9D%E8%A1%97%E5%9D%8A%E5%A9%A6%E5%A5%B3%E6%9C%83%E5%AD%AB%E6%96%B9%E4%B8%AD%E5%B0%8F%E5%AD%B8",
+                teacherStability: "93.07/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8411",
+                nameEn: "Lam Tsuen Public Wong Fook Luen Memorial School",
+                nameCh: "林村公立黃福鑾紀念學校",
+                alias: "黃福鑾",
+                link: "https://www.wfl.edu.hk/tc/content.php?wid=276",
+                interviewDate: "6/6 上午（限4/6或之前交表）； 其後個別通知",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E6%9E%97%E6%9D%91%E5%85%AC%E7%AB%8B%E9%BB%83%E7%A6%8F%E9%91%BE%E7%B4%80%E5%BF%B5%E5%AD%B8%E6%A0%A1",
+                teacherStability: "83.69/100",
+                enrollmentIndex: "79/100"
+            },
+            {
+                code: "8412",
+                nameEn: "Tai Po Methodist School",
+                nameCh: "大埔循道衛理小學",
+                alias: "循道衛理",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E5%BE%AA%E9%81%93%E8%A1%9B%E7%90%86%E5%B0%8F%E5%AD%B8",
+                teacherStability: "75.93/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8413",
+                nameEn: "PLK Tin Ka Ping Millennium Primary School",
+                nameCh: "保良局田家炳千禧小學",
+                alias: "田千",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E4%BF%9D%E8%89%AF%E5%B1%80%E7%94%B0%E5%AE%B6%E7%82%B3%E5%8D%83%E7%A6%A7%E5%B0%8F%E5%AD%B8",
+                teacherStability: "85.77/100",
+                enrollmentIndex: "88/100"
+            },
+            {
+                code: "8414",
+                nameEn: "Yan Chai Hospital Choi Hin To Primary School",
+                nameCh: "仁濟醫院蔡衍濤小學",
+                alias: "蔡衍濤",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E4%BB%81%E6%BF%9F%E9%86%AB%E9%99%A2%E8%94%A1%E8%A1%8D%E6%BF%A4%E5%B0%8F%E5%AD%B8",
+                teacherStability: "--",
+                enrollmentIndex: "--"
+            },
+            {
+                code: "8415",
+                nameEn: "Tai Po Government Primary School",
+                nameCh: "大埔官立小學",
+                alias: "大埔官小",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A7%E5%9F%94%E5%AE%98%E7%AB%8B%E5%B0%8F%E5%AD%B8",
+                teacherStability: "71.75/100",
+                enrollmentIndex: "9/100"
+            },
+            {
+                code: "8416",
+                nameEn: "The EdUHK Jockey Club Primary School",
+                nameCh: "香港教育大學賽馬會小學",
+                alias: "賽馬會小學",
+                link: "https://www.edujcps.edu.hk/CustomPage/paragraphGroup.aspx?webPageId=7&pageId=167",
+                interviewDate: "個別通知",
+                remarks: "只限8/6 親身申請",
+                goodSchool: "https://www.goodschool.hk/%E9%A6%99%E6%B8%AF%E6%95%99%E8%82%B2%E5%A4%A7%E5%AD%B8%E8%B3%BD%E9%A6%AC%E6%9C%83%E5%B0%8F%E5%AD%B8",
+                teacherStability: "89.39/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8417",
+                nameEn: "Sacred Heart of Mary Catholic Primary School",
+                nameCh: "天主教聖母聖心小學",
+                alias: "聖心",
+                link: "https://www.shmcps.edu.hk/attachment/upload/files/2026-27%E5%B9%B4%E5%BA%A6%E5%B0%8F%E4%B8%80%E5%85%A5%E5%AD%B8%E5%BE%8C%E8%A3%9C%E7%94%9F%E7%94%B3%E8%AB%8B%E5%8F%8A%E9%9D%A2%E8%A9%A6%E5%AE%89%E6%8E%92.pdf",
+                interviewDate: "20/6 上午",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E5%A4%A9%E4%B8%BB%E6%95%99%E8%81%96%E6%AF%8D%E8%81%96%E5%BF%83%E5%B0%8F%E5%AD%B8",
+                teacherStability: "80.56/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8418",
+                nameEn: "SKH Yuen Chen Maun Chen Jubilee Primary School",
+                nameCh: "聖公會阮鄭夢芹銀禧小學",
+                alias: "阮銀",
+                link: "https://www.skhycmcj.edu.hk/zh_tw/site/view?name=%E5%B0%8F%E4%B8%80%E5%BE%8C%E5%8F%96%E7%94%9F%E7%A8%8B%E5%BA%8F%E5%8F%8A%E6%99%82%E9%96%93%E8%A1%A8",
+                interviewDate: "呈交2分鐘面試短片",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E8%81%96%E5%85%AC%E6%9C%83%E9%98%AE%E9%84%AD%E5%A4%A2%E8%8A%B9%E9%8A%80%E7%A6%A7%E5%B0%8F%E5%AD%B8",
+                teacherStability: "87.12/100",
+                enrollmentIndex: "100/100"
+            },
+            {
+                code: "8419",
+                nameEn: "The Pentecostal Holiness Church Wing Kwong Junior S",
+                nameCh: "五旬節聖潔會永光小學",
+                alias: "永光",
+                link: "未有",
+                interviewDate: "未有",
+                remarks: "無",
+                goodSchool: "https://www.goodschool.hk/%E4%BA%94%E6%97%AC%E7%AF%80%E8%81%96%E6%BD%94%E6%9C%83%E6%B0%B8%E5%85%89%E5%B0%8F%E5%AD%B8",
+                teacherStability: "--",
+                enrollmentIndex: "--"
+            }
+        ];
+
+        // 快捷標籤設定函式
+        function setKeyword(word) {
+            document.getElementById('searchInput').value = word;
+            doSearch();
+        }
+
+        // 核心搜尋引擎（防呆、大小寫無差別、全方位模糊匹配）
+        function doSearch() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const container = document.getElementById('schoolsContainer');
+            
+            // 過濾符合條件的學校
+            const filtered = schoolDatabase.filter(school => {
+                return school.code.toLowerCase().includes(query) ||
+                       school.nameEn.toLowerCase().includes(query) ||
+                       school.nameCh.toLowerCase().includes(query) ||
+                       school.alias.toLowerCase().includes(query) ||
+                       school.interviewDate.toLowerCase().includes(query) ||
+                       school.remarks.toLowerCase().includes(query);
+            });
+
+            // 更新計數顯示
+            document.getElementById('resultCount').innerText = `已為您篩選出 ${filtered.length} 間符合條件的學校`;
+
+            // 清空容器重新渲染
+            container.innerHTML = '';
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 bg-amber-50/30 rounded-2xl border border-dashed border-amber-200">
+                        <p class="text-amber-600 font-medium text-lg">沒有找到相關學校，請嘗試輸入其他關鍵字。</p>
+                    </div>`;
+                return;
+            }
+
+            // 渲染學校卡片
+            filtered.forEach(school => {
+                // 處理連結按鈕狀態
+                const linkBtn = school.link !== "未有" 
+                    ? `<a href="${school.link}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm transition shadow-sm">🔗 前往叩門官網</a>`
+                    : `<button disabled class="inline-flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-400 font-medium rounded-lg text-sm cursor-not-allowed">尚未公佈連結</button>`;
+
+                // 處理備註高亮
+                const remarkBadge = school.remarks !== "無" 
+                    ? `<div class="mt-3 p-2.5 bg-rose-50 border border-rose-100 rounded-lg text-xs text-rose-700 font-medium">⚠️ 備註：${school.remarks}</div>` 
+                    : '';
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-xs border border-amber-100/80 p-5 hover:shadow-md hover:border-amber-200 transition-all duration-200";
+                card.innerHTML = `
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <!-- 左側：學校基本名稱 -->
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-sm">${school.code}</span>
+                                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5 rounded-sm">${school.alias}</span>
+                                <a href="${school.goodSchool}" target="_blank" class="text-xs text-blue-600 hover:underline inline-flex items-center gap-0.5">
+                                    GoodSchool 📄
+                                </a>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-900">${school.nameCh}</h2>
+                            <p class="text-xs text-gray-500 font-mono">${school.nameEn}</p>
+                        </div>
+
+                        <!-- 右側：數據指標與動作 -->
+                        <div class="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center md:items-end lg:items-center gap-3 shrink-0">
+                            <!-- 指標組 -->
+                            <div class="grid grid-cols-2 gap-2 bg-amber-50/40 p-2 rounded-lg border border-amber-100/50 text-center sm:text-left min-w-[220px]">
+                                <div>
+                                    <p class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">教師穩定指數</p>
+                                    <p class="text-sm font-black text-amber-900">${school.teacherStability}</p>
+                                </div>
+                                <div class="border-l border-amber-100 pl-2">
+                                    <p class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">收生充足指數</p>
+                                    <p class="text-sm font-black ${school.enrollmentIndex.startsWith('100') ? 'text-emerald-700' : 'text-amber-800'}">${school.enrollmentIndex}</p>
+                                </div>
+                            </div>
+                            <!-- 行動按鈕 -->
+                            <div class="flex items-center">
+                                ${linkBtn}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 下方：叩門時程區 -->
+                    <div class="mt-4 pt-3 border-t border-dashed border-gray-100 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
+                        <div class="flex items-center gap-1.5 text-gray-700">
+                            <span class="text-amber-500 font-bold">📅 面試日期:</span>
+                            <span class="${school.interviewDate === '未有' ? 'text-gray-400 italic' : 'text-amber-900 font-semibold'}">${school.interviewDate}</span>
+                        </div>
+                    </div>
+                    ${remarkBadge}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 初始運行，載入全部資料
+        window.onload = function() {
+            doSearch();
+        };
+    </script>
+</body>
+</html>
