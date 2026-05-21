@@ -23,6 +23,21 @@
         </header>
 
         <!-- 搜尋控制台 -->
+        <!-- 分區切換 Tab 組群 (加在搜尋大格子上方) -->
+        <div class="flex flex-wrap gap-2 mb-4 justify-center sm:justify-start">
+            <button id="tab-all" onclick="switchDistrict('all')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-600 text-white shadow-sm transition">
+                🌐 全部分區
+            </button>
+            <button id="tab-taipo" onclick="switchDistrict('taipo')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-100/60 text-amber-800 hover:bg-amber-100 transition">
+                📍 大埔區 (19)
+            </button>
+            <button id="tab-shatin" onclick="switchDistrict('shatin')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-100/60 text-amber-800 hover:bg-amber-100 transition">
+                📍 沙田區
+            </button>
+            <button id="tab-north" onclick="switchDistrict('north')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-100/60 text-amber-800 hover:bg-amber-100 transition">
+                📍 北區/上水
+            </button>
+        </div>
         <div class="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 mb-6">
             <div class="relative">
                 <input type="text" id="searchInput" oninput="doSearch()" 
