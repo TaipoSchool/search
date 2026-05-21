@@ -36,6 +36,9 @@
             </button>
             <button id="tab-north" onclick="switchDistrict('north')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-100/60 text-amber-800 hover:bg-amber-100 transition">
                 📍 北區/上水
+             </button>
+             <button id="tab-others" onclick="switchDistrict('others')" class="district-tab px-4 py-2 text-sm font-medium rounded-xl bg-amber-100/60 text-amber-800 hover:bg-amber-100 transition">
+                📍 其它地區
             </button>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 mb-6">
@@ -350,7 +353,7 @@
             {
             
                 code: "3108",
-                district: "shatin",
+                district: "others",
                 nameEn: "Yaumati Catholic Primary School",
                 nameCh: "油蔴地天主教小學",
                 alias: "舊油天",
@@ -364,7 +367,7 @@
              {
             
                 code: "3109",
-                district: "shatin",
+                district: "others",
                 nameEn: "Yaumati Catholic Primary School (Hoi Wang Road) (YCPS)",
                 nameCh: "油蔴地天主教小學（海泓道） ",
                 alias: "新油天",
@@ -432,6 +435,7 @@ const districtNames = {
     'taipo': '大埔區',
     'shatin': '沙田區',
     'north': '北區/上水'
+    'others': '其它地區'
 };
 
 // 快捷標籤功能
@@ -512,7 +516,7 @@ function doSearch() {
     // -------------------------------------------------------------
     // 【第二步：按分區群組化排版與渲染】
     // -------------------------------------------------------------
-    const grouped = { 'taipo': [], 'shatin': [], 'north': [] };
+    const grouped = { 'taipo': [], 'shatin': [], 'north': [], 'others': [], };
     
     filteredSchools.forEach(school => {
         // 如果學校的 district 欄位沒填或填錯，預設歸類到大埔以防崩潰
