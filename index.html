@@ -424,106 +424,190 @@
 
         // 快捷標籤設定函式
  
-        function setKeyword(word) {
-            document.getElementById('searchInput').value = word;
-            doSearch();
-        }
+        // 全域狀態管理：記錄家長目前選取的分區，預設為 'all' (全部)
+let currentDistrict = 'all';
 
-        // 核心搜尋引擎（防呆、大小寫無差別、全方位模糊匹配）
-        function doSearch() {
-            const query = document.getElementById('searchInput').value.trim().toLowerCase();
-            const container = document.getElementById('schoolsContainer');
+// 分區中文名稱對照表
+const districtNames = {
+    'taipo': '大埔區',
+    'shatin': '沙田區',
+    'north': '北區/上水'
+};
+
+// 快捷標籤功能
+function setKeyword(word) {
+    document.getElementById('searchInput').value = word;
+    doSearch();
+}
+
+// 分區 Tab 切換功能
+function switchDistrict(districtCode) {
+    currentDistrict = districtCode;
+    
+    // 移除所有按鈕的啟用樣式
+    document.querySelectorAll('.district-tab').forEach(tab => {
+        tab.classList.remove('bg-amber-600', 'text-white', 'shadow-sm');
+        tab.classList.add('bg-amber-100/60', 'text-amber-800', 'hover:bg-amber-100');
+    });
+    
+    // 高亮當前點選的 Tab
+    const activeTab = document.getElementById(`tab-${districtCode}`);
+    if (activeTab) {
+        activeTab.classList.remove('bg-amber-100/60', 'text-amber-800', 'hover:bg-amber-100');
+        activeTab.classList.add('bg-amber-600', 'text-white', 'shadow-sm');
+    }
+    
+    doSearch();
+}
+
+// 核心複合搜尋引擎（2.0 終極防錯版）
+function doSearch() {
+    const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+    const container = document.getElementById('schoolsContainer');
+    if (!container) return; // 系統防禦：防止找不到容器
+    
+    // -------------------------------------------------------------
+    // 【第一步：安全複合過濾】
+    // -------------------------------------------------------------
+    const filteredSchools = schoolDatabase.filter(school => {
+        // 1. 檢查分區是否匹配
+        const matchDistrict = (currentDistrict === 'all' || school.district === currentDistrict);
+        
+        // 2. 檢查關鍵字（加上安全保護機制，防止變數為 undefined）
+        const code = (school.code || '').toLowerCase();
+        const nameCh = (school.nameCh || '').toLowerCase();
+        const nameEn = (school.nameEn || '').toLowerCase();
+        const alias = (school.alias || '').toLowerCase();
+        const interviewDate = (school.interviewDate || '').toLowerCase();
+        const remarks = (school.remarks || '').toLowerCase();
+        
+        const matchKeyword = !query || 
+            code.includes(query) ||
+            nameCh.includes(query) ||
+            nameEn.includes(query) ||
+            alias.includes(query) ||
+            interviewDate.includes(query) ||
+            remarks.includes(query);
             
-            // 過濾符合條件的學校
-            const filtered = schoolDatabase.filter(school => {
-                return school.code.toLowerCase().includes(query) ||
-                       school.nameEn.toLowerCase().includes(query) ||
-                       school.nameCh.toLowerCase().includes(query) ||
-                       school.alias.toLowerCase().includes(query) ||
-                       school.interviewDate.toLowerCase().includes(query) ||
-                       school.remarks.toLowerCase().includes(query);
-            });
+        return matchDistrict && matchKeyword;
+    });
 
-            // 更新計數顯示
-            document.getElementById('resultCount').innerText = `已為您篩選出 ${filtered.length} 間符合條件的學校`;
+    // 更新計數顯示
+    const resultCountEl = document.getElementById('resultCount');
+    if (resultCountEl) {
+        resultCountEl.innerText = `已為您篩選出 ${filteredSchools.length} 間符合條件的學校`;
+    }
 
-            // 清空容器重新渲染
-            container.innerHTML = '';
+    // 清空舊數據
+    container.innerHTML = '';
 
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 bg-amber-50/30 rounded-2xl border border-dashed border-amber-200">
-                        <p class="text-amber-600 font-medium text-lg">沒有找到相關學校，請嘗試輸入其他關鍵字。</p>
-                    </div>`;
-                return;
-            }
+    if (filteredSchools.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12 bg-amber-50/30 rounded-2xl border border-dashed border-amber-200">
+                <p class="text-amber-600 font-medium text-lg">沒有找到相關學校，請嘗試切換分區或輸入其他關鍵字。</p>
+            </div>`;
+        return;
+    }
 
-            // 渲染學校卡片
-            filtered.forEach(school => {
-                // 處理連結按鈕狀態
-                const linkBtn = school.link !== "未有" 
-                    ? `<a href="${school.link}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm transition shadow-sm">🔗 前往叩門官網</a>`
+    // -------------------------------------------------------------
+    // 【第二步：按分區群組化排版與渲染】
+    // -------------------------------------------------------------
+    const grouped = { 'taipo': [], 'shatin': [], 'north': [] };
+    
+    filteredSchools.forEach(school => {
+        // 如果學校的 district 欄位沒填或填錯，預設歸類到大埔以防崩潰
+        const dist = school.district || 'taipo'; 
+        if (grouped[dist]) {
+            grouped[dist].push(school);
+        } else {
+            grouped['taipo'].push(school);
+        }
+    });
+
+    Object.keys(grouped).forEach(distKey => {
+        const schoolsInGroup = grouped[distKey];
+        
+        if (schoolsInGroup.length > 0) {
+            const groupSection = document.createElement('div');
+            groupSection.className = "mb-8";
+            
+            groupSection.innerHTML = `
+                <div class="flex items-center gap-2 mb-3 px-1">
+                    <span class="text-lg font-bold text-amber-900">📍 ${districtNames[distKey] || '其他'}</span>
+                    <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-semibold">
+                        ${schoolsInGroup.length} 間學校
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 gap-4" id="group-list-${distKey}"></div>
+            `;
+            
+            container.appendChild(groupSection);
+            const listContainer = document.getElementById(`group-list-${distKey}`);
+
+            schoolsInGroup.forEach(school => {
+                // 安全讀取屬性，防止因缺少某個欄位而中斷執行
+                const schoolLink = school.link || '未有';
+                const schoolRemarks = school.remarks || '無';
+                const ts = school.teacherStability || '--';
+                const ei = school.enrollmentIndex || '--';
+                const gs = school.goodSchool || '#';
+                const iDate = school.interviewDate || '未有';
+
+                const linkBtn = schoolLink !== "未有" 
+                    ? `<a href="${schoolLink}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm transition shadow-sm">🔗 前往叩門官網</a>`
                     : `<button disabled class="inline-flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-400 font-medium rounded-lg text-sm cursor-not-allowed">尚未公佈連結</button>`;
 
-                // 處理備註高亮
-                const remarkBadge = school.remarks !== "無" 
-                    ? `<div class="mt-3 p-2.5 bg-rose-50 border border-rose-100 rounded-lg text-xs text-rose-700 font-medium">⚠️ 備註：${school.remarks}</div>` 
+                const remarkBadge = schoolRemarks !== "無" 
+                    ? `<div class="mt-3 p-2.5 bg-rose-50 border border-rose-100 rounded-lg text-xs text-rose-700 font-medium">⚠️ 備註：${schoolRemarks}</div>` 
                     : '';
 
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-xl shadow-xs border border-amber-100/80 p-5 hover:shadow-md hover:border-amber-200 transition-all duration-200";
                 card.innerHTML = `
                     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <!-- 左側：學校基本名稱 -->
                         <div class="space-y-1">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-sm">${school.code}</span>
-                                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5 rounded-sm">${school.alias}</span>
-                                <a href="${school.goodSchool}" target="_blank" class="text-xs text-blue-600 hover:underline inline-flex items-center gap-0.5">
-                                    GoodSchool 📄
-                                </a>
+                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-sm">${school.code || ''}</span>
+                                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5 rounded-sm">${school.alias || ''}</span>
+                                <a href="${gs}" target="_blank" class="text-xs text-blue-600 hover:underline inline-flex items-center gap-0.5">GoodSchool 📄</a>
                             </div>
-                            <h2 class="text-xl font-bold text-gray-900">${school.nameCh}</h2>
-                            <p class="text-xs text-gray-500 font-mono">${school.nameEn}</p>
+                            <h2 class="text-xl font-bold text-gray-900">${school.nameCh || ''}</h2>
+                            <p class="text-xs text-gray-500 font-mono">${school.nameEn || ''}</p>
                         </div>
-
-                        <!-- 右側：數據指標與動作 -->
                         <div class="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center md:items-end lg:items-center gap-3 shrink-0">
-                            <!-- 指標組 -->
                             <div class="grid grid-cols-2 gap-2 bg-amber-50/40 p-2 rounded-lg border border-amber-100/50 text-center sm:text-left min-w-[220px]">
                                 <div>
                                     <p class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">教師穩定指數</p>
-                                    <p class="text-sm font-black text-amber-900">${school.teacherStability}</p>
+                                    <p class="text-sm font-black text-amber-900">${ts}</p>
                                 </div>
                                 <div class="border-l border-amber-100 pl-2">
                                     <p class="text-[10px] text-amber-600 uppercase font-bold tracking-wider">收生充足指數</p>
-                                    <p class="text-sm font-black ${school.enrollmentIndex.startsWith('100') ? 'text-emerald-700' : 'text-amber-800'}">${school.enrollmentIndex}</p>
+                                    <p class="text-sm font-black text-amber-900">${ei}</p>
                                 </div>
                             </div>
-                            <!-- 行動按鈕 -->
-                            <div class="flex items-center">
-                                ${linkBtn}
-                            </div>
+                            <div class="flex items-center">${linkBtn}</div>
                         </div>
                     </div>
-
-                    <!-- 下方：叩門時程區 -->
                     <div class="mt-4 pt-3 border-t border-dashed border-gray-100 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
                         <div class="flex items-center gap-1.5 text-gray-700">
                             <span class="text-amber-500 font-bold">📅 面試日期:</span>
-                            <span class="${school.interviewDate === '未有' ? 'text-gray-400 italic' : 'text-amber-900 font-semibold'}">${school.interviewDate}</span>
+                            <span class="${iDate === '未有' ? 'text-gray-400 italic' : 'text-amber-900 font-semibold'}">${iDate}</span>
                         </div>
                     </div>
                     ${remarkBadge}
                 `;
-                container.appendChild(card);
+                if (listContainer) {
+                    listContainer.appendChild(card);
+                }
             });
         }
+    });
+}
 
-        // 初始運行，載入全部資料
-        window.onload = function() {
-            doSearch();
-        };
+// 網頁初始化
+window.onload = function() {
+    doSearch();
+};
     </script>
 </body>
 </html>
